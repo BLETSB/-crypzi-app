@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Crypzi</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0A0A0A;
+    --surface:   #111111;
+    --surface2:  #181818;
+    --border:    #222222;
+    --text:      #E8E8E8;
+    --muted:     #555555;
+    --accent:    #C8FF00;
+    --green:     #00E676;
+    --red:       #FF3D57;
+    --orange:    #FF9100;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Header ─────────────────────────────── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 20px 0;
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    letter-spacing: -0.5px;
+    color: var(--accent);
+  }
+
+  .logo span { color: var(--muted); font-weight: 400; font-size: 12px; display: block; letter-spacing: 2px; margin-top: -2px; }
+
+  .live-dot {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  .live-dot::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.4; transform: scale(0.8); }
+  }
+
+  /* ── Tabs ────────────────────────────────── */
+  .tabs {
+    display: flex;
+    gap: 0;
+    padding: 20px 20px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab {
+    padding: 10px 16px;
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+  }
+
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ── Content ─────────────────────────────── */
+  .page { display: none; padding: 20px; animation: fadeIn 0.3s ease; }
+  .page.active { display: block; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ── Fear & Greed ────────────────────────── */
+  .fg-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 24px;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .fg-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--fg-color, var(--accent));
+  }
+
+  .fg-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  .fg-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 72px;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--fg-color, var(--accent));
+    margin-bottom: 4px;
+  }
+
+  .fg-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 20px;
+  }
+
+  .fg-bar-wrap {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .fg-bar-fill {
+    height: 100%;
+    background: var(--fg-color, var(--accent));
+    border-radius: 2px;
+    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .fg-scale {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  /* ── Price Cards ─────────────────────────── */
+  .prices-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .price-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 16px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .price-card:active { border-color: var(--accent); }
+
+  .price-card .coin {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .price-card .price {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .price-card .change {
+    font-size: 12px;
+    font-weight: 400;
+  }
+
+  .up   { color: var(--green); }
+  .down { color: var(--red); }
+
+  /* ── Trending ────────────────────────────── */
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+    margin-top: 8px;
+  }
+
+  .trend-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .trend-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 14px 16px;
+  }
+
+  .trend-rank {
+    font-size: 10px;
+    color: var(--muted);
+    width: 16px;
+    flex-shrink: 0;
+  }
+
+  .trend-name {
+    flex: 1;
+    padding: 0 12px;
+  }
+
+  .trend-name .name { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; }
+  .trend-name .sym  { font-size: 10px; color: var(--muted); letter-spacing: 1px; margin-top: 1px; }
+
+  .trend-change { font-size: 13px; font-weight: 500; }
+
+  /* ── News ────────────────────────────────── */
+  .news-list { display: flex; flex-direction: column; gap: 1px; }
+
+  .news-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 16px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    text-decoration: none;
+    display: block;
+  }
+
+  .news-item:active { border-color: var(--accent); }
+
+  .news-source {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .news-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.4;
+    margin-bottom: 8px;
+  }
+
+  .news-time { font-size: 10px; color: var(--muted); }
+
+  /* ── Whales ──────────────────────────────── */
+  .whale-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .whale-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 16px;
+  }
+
+  .whale-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+  }
+
+  .whale-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .whale-amount {
+    font-size: 13px;
+    font-weight: 500;
+    text-align: right;
+  }
+
+  .whale-usd { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  .whale-addr {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+  }
+
+  .whale-direction {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 1px;
+    margin-bottom: 8px;
+  }
+
+  .whale-direction.out { background: rgba(255,61,87,0.1); color: var(--red); }
+  .whale-direction.in  { background: rgba(0,230,118,0.1); color: var(--green); }
+
+  /* ── Loading ─────────────────────────────── */
+  .skeleton {
+    background: linear-gradient(90deg, var(--surface) 25%, var(--surface2) 50%, var(--surface) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 2px;
+  }
+
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+  .skel-card { height: 90px; margin-bottom: 10px; }
+
+  /* ── Empty state ─────────────────────────── */
+  .empty {
+    text-align: center;
+    padding: 48px 20px;
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 1px;
+  }
+
+  .empty-icon { font-size: 32px; margin-bottom: 12px; }
+
+  /* ── Error ───────────────────────────────── */
+  .error-bar {
+    background: rgba(255,61,87,0.1);
+    border: 1px solid rgba(255,61,87,0.3);
+    color: var(--red);
+    font-size: 11px;
+    padding: 10px 16px;
+    border-radius: 2px;
+    margin-bottom: 12px;
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">CRYPZI<span>PULSE</span></div>
+  <div class="live-dot">LIVE</div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('market')">Рынок</button>
+  <button class="tab" onclick="switchTab('news')">Новости</button>
+  <button class="tab" onclick="switchTab('whales')">Киты</button>
+</div>
+
+<!-- MARKET -->
+<div class="page active" id="page-market">
+  <div id="error-bar" class="error-bar">Нет соединения. Данные могут быть устаревшими.</div>
+
+  <!-- Fear & Greed -->
+  <div class="fg-card" id="fg-card">
+    <div class="fg-label">Fear & Greed Index</div>
+    <div class="skeleton skel-card" id="fg-skeleton"></div>
+    <div id="fg-content" style="display:none">
+      <div class="fg-value" id="fg-value">--</div>
+      <div class="fg-name" id="fg-name">--</div>
+      <div class="fg-bar-wrap"><div class="fg-bar-fill" id="fg-bar" style="width:0%"></div></div>
+      <div class="fg-scale"><span>😱 Паника</span><span>🤑 Эйфория</span></div>
+    </div>
+  </div>
+
+  <!-- Prices -->
+  <div class="section-title">Топ монеты</div>
+  <div class="prices-grid" id="prices-grid">
+    <div class="skeleton skel-card"></div>
+    <div class="skeleton skel-card"></div>
+    <div class="skeleton skel-card"></div>
+    <div class="skeleton skel-card"></div>
+  </div>
+
+  <!-- Trending -->
+  <div class="section-title">В тренде сегодня</div>
+  <div class="trend-list" id="trend-list">
+    <div class="skeleton skel-card"></div>
+    <div class="skeleton skel-card"></div>
+    <div class="skeleton skel-card"></div>
+  </div>
+</div>
+
+<!-- NEWS -->
+<div class="page" id="page-news">
+  <div class="news-list" id="news-list">
+    <div class="skeleton skel-card"></div>
+    <div class="skeleton skel-card"></div>
+    <div class="skeleton skel-card"></div>
+    <div class="skeleton skel-card"></div>
+    <div class="skeleton skel-card"></div>
+  </div>
+</div>
+
+<!-- WHALES -->
+<div class="page" id="page-whales">
+  <div class="section-title">Последние движения</div>
+  <div class="whale-list" id="whale-list">
+    <div class="skeleton skel-card"></div>
+    <div class="skeleton skel-card"></div>
+    <div class="skeleton skel-card"></div>
+  </div>
+</div>
+
+<script>
+// ── Telegram WebApp init ──────────────────────
+const tg = window.Telegram?.WebApp;
+if (tg) {
+  tg.ready();
+  tg.expand();
+  tg.setHeaderColor('#0A0A0A');
+  tg.setBackgroundColor('#0A0A0A');
+}
+
+// ── Tabs ──────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('page-' + name).classList.add('active');
+}
+
+// ── Formatters ────────────────────────────────
+function fmtPrice(p) {
+  if (p >= 1000) return '$' + p.toLocaleString('en', {maximumFractionDigits: 2});
+  if (p >= 1)    return '$' + p.toFixed(4);
+  return '$' + p.toFixed(6).replace(/0+$/, '');
+}
+
+function fmtChange(pct) {
+  const sign = pct >= 0 ? '+' : '';
+  return sign + pct.toFixed(2) + '%';
+}
+
+function timeAgo(ts) {
+  const diff = Math.floor((Date.now() / 1000) - ts);
+  if (diff < 60)   return diff + 'с назад';
+  if (diff < 3600) return Math.floor(diff/60) + 'м назад';
+  if (diff < 86400)return Math.floor(diff/3600) + 'ч назад';
+  return Math.floor(diff/86400) + 'д назад';
+}
+
+function fgColor(val) {
+  if (val <= 20) return '#FF3D57';
+  if (val <= 40) return '#FF9100';
+  if (val <= 60) return '#E8E8E8';
+  if (val <= 80) return '#C8FF00';
+  return '#00E676';
+}
+
+function fgName(val) {
+  if (val <= 20) return 'Extreme Fear';
+  if (val <= 40) return 'Fear';
+  if (val <= 60) return 'Neutral';
+  if (val <= 80) return 'Greed';
+  return 'Extreme Greed';
+}
+
+function newsEmoji(title) {
+  const t = title.toLowerCase();
+  if (t.includes('bitcoin') || t.includes('btc')) return '₿';
+  if (t.includes('ethereum') || t.includes('eth')) return '⟠';
+  if (t.includes('solana') || t.includes('sol')) return '◎';
+  if (t.includes('ton')) return '💎';
+  if (t.includes('sec') || t.includes('regulat')) return '⚖️';
+  if (t.includes('hack') || t.includes('exploit')) return '🚨';
+  if (t.includes('etf')) return '📈';
+  return '⚡';
+}
+
+// ── Fear & Greed ──────────────────────────────
+async function loadFearGreed() {
+  try {
+    const r = await fetch('https://api.alternative.me/fng/?limit=1');
+    const d = await r.json();
+    const val = parseInt(d.data[0].value);
+    const color = fgColor(val);
+
+    document.getElementById('fg-skeleton').style.display = 'none';
+    const content = document.getElementById('fg-content');
+    content.style.display = 'block';
+
+    document.getElementById('fg-value').textContent = val;
+    document.getElementById('fg-value').style.color = color;
+    document.getElementById('fg-name').textContent = fgName(val);
+    document.getElementById('fg-bar').style.width = val + '%';
+    document.getElementById('fg-bar').style.background = color;
+    document.getElementById('fg-card').style.setProperty('--fg-color', color);
+  } catch(e) { console.error('FG error', e); }
+}
+
+// ── Prices ────────────────────────────────────
+const SYMBOLS = ['BTCUSDT','ETHUSDT','SOLUSDT','BNBUSDT','TONUSDT','XRPUSDT'];
+
+async function loadPrices() {
+  try {
+    const [priceRes, changeRes] = await Promise.all([
+      fetch('https://api.binance.com/api/v3/ticker/price?symbols=["BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","TONUSDT","XRPUSDT"]'),
+      fetch('https://api.binance.com/api/v3/ticker/24hr?symbols=["BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","TONUSDT","XRPUSDT"]')
+    ]);
+
+    const prices  = await priceRes.json();
+    const changes = await changeRes.json();
+
+    const priceMap  = {};
+    const changeMap = {};
+    prices.forEach(p  => priceMap[p.symbol]  = parseFloat(p.price));
+    changes.forEach(c => changeMap[c.symbol] = parseFloat(c.priceChangePercent));
+
+    const grid = document.getElementById('prices-grid');
+    grid.innerHTML = '';
+
+    SYMBOLS.forEach(sym => {
+      const price  = priceMap[sym];
+      const change = changeMap[sym];
+      const name   = sym.replace('USDT', '');
+      const isUp   = change >= 0;
+
+      grid.innerHTML += `
+        <div class="price-card">
+          <div class="coin">${name}</div>
+          <div class="price">${fmtPrice(price)}</div>
+          <div class="change ${isUp ? 'up' : 'down'}">${fmtChange(change)}</div>
+        </div>`;
+    });
+  } catch(e) {
+    console.error('Prices error', e);
+    document.getElementById('error-bar').style.display = 'block';
+  }
+}
+
+// ── Trending ──────────────────────────────────
+async function loadTrending() {
+  try {
+    const r = await fetch('https://api.coingecko.com/api/v3/search/trending');
+    const d = await r.json();
+    const coins = d.coins.slice(0, 5);
+
+    // Get prices
+    const ids = coins.map(c => c.item.id).join(',');
+    const pr  = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`);
+    const pd  = await pr.json();
+
+    const list = document.getElementById('trend-list');
+    list.innerHTML = '';
+
+    coins.forEach((c, i) => {
+      const item   = c.item;
+      const pdata  = pd[item.id] || {};
+      const change = pdata.usd_24h_change;
+      const isUp   = (change || 0) >= 0;
+
+      list.innerHTML += `
+        <div class="trend-item">
+          <div class="trend-rank">${i+1}</div>
+          <div class="trend-name">
+            <div class="name">${item.name}</div>
+            <div class="sym">${item.symbol.toUpperCase()}</div>
+          </div>
+          <div class="trend-change ${isUp ? 'up' : 'down'}">
+            ${change != null ? (isUp ? '+' : '') + change.toFixed(1) + '%' : '—'}
+          </div>
+        </div>`;
+    });
+  } catch(e) { console.error('Trending error', e); }
+}
+
+// ── News ──────────────────────────────────────
+const RSS_FEEDS = [
+  { url: 'https://api.rss2json.com/v1/api.json?rss_url=https://cointelegraph.com/rss', source: 'CoinTelegraph' },
+  { url: 'https://api.rss2json.com/v1/api.json?rss_url=https://decrypt.co/feed',       source: 'Decrypt' },
+  { url: 'https://api.rss2json.com/v1/api.json?rss_url=https://bits.media/rss/news/',  source: 'Bits.media' },
+  { url: 'https://api.rss2json.com/v1/api.json?rss_url=https://forklog.com/feed/',     source: 'Forklog' },
+];
+
+async function loadNews() {
+  try {
+    const results = await Promise.allSettled(
+      RSS_FEEDS.map(f => fetch(f.url).then(r => r.json()).then(d => ({ ...d, source: f.source })))
+    );
+
+    let allItems = [];
+    results.forEach(r => {
+      if (r.status === 'fulfilled' && r.value.items) {
+        r.value.items.slice(0, 4).forEach(item => {
+          allItems.push({
+            title:  item.title,
+            link:   item.link,
+            source: r.value.source,
+            pubDate: item.pubDate,
+          });
+        });
+      }
+    });
+
+    // Sort by date
+    allItems.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+    allItems = allItems.slice(0, 15);
+
+    const list = document.getElementById('news-list');
+    list.innerHTML = '';
+
+    if (!allItems.length) {
+      list.innerHTML = '<div class="empty"><div class="empty-icon">📭</div>Нет новостей</div>';
+      return;
+    }
+
+    allItems.forEach(item => {
+      const ts   = Math.floor(new Date(item.pubDate).getTime() / 1000);
+      const emoji = newsEmoji(item.title);
+      list.innerHTML += `
+        <a class="news-item" href="${item.link}" target="_blank">
+          <div class="news-source">${emoji} ${item.source}</div>
+          <div class="news-title">${item.title}</div>
+          <div class="news-time">${timeAgo(ts)}</div>
+        </a>`;
+    });
+  } catch(e) {
+    console.error('News error', e);
+    document.getElementById('news-list').innerHTML =
+      '<div class="empty"><div class="empty-icon">⚠️</div>Ошибка загрузки</div>';
+  }
+}
+
+// ── Whales ────────────────────────────────────
+const WHALE_ADDRESSES = [
+  { address: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045', name: 'Виталик Бутерин', chain: 'eth', emoji: '⟠' },
+  { address: '0x47ac0Fb4F2D84898e4D9E7b4DaB3C24507a6D503', name: 'Binance Cold',    chain: 'eth', emoji: '🏦' },
+  { address: '0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8', name: 'Binance Hot',     chain: 'eth', emoji: '🏦' },
+];
+
+async function loadWhales() {
+  const list = document.getElementById('whale-list');
+  try {
+    const txPromises = WHALE_ADDRESSES.map(async whale => {
+      const r = await fetch(
+        `https://api.etherscan.io/api?module=account&action=txlist&address=${whale.address}&sort=desc&offset=3&page=1`
+      );
+      const d = await r.json();
+      return { whale, txs: Array.isArray(d.result) ? d.result : [] };
+    });
+
+    const results = await Promise.allSettled(txPromises);
+    let allTxs = [];
+
+    results.forEach(r => {
+      if (r.status === 'fulfilled') {
+        r.value.txs.forEach(tx => {
+          const ethVal = parseInt(tx.value) / 1e18;
+          if (ethVal < 1) return;
+          allTxs.push({ whale: r.value.whale, tx, ethVal });
+        });
+      }
+    });
+
+    allTxs.sort((a, b) => b.tx.timeStamp - a.tx.timeStamp);
+    allTxs = allTxs.slice(0, 8);
+
+    list.innerHTML = '';
+
+    if (!allTxs.length) {
+      list.innerHTML = `
+        <div class="empty">
+          <div class="empty-icon">🐋</div>
+          Нет крупных движений<br>за последнее время
+        </div>`;
+      return;
+    }
+
+    allTxs.forEach(({ whale, tx, ethVal }) => {
+      const isOut   = tx.from.toLowerCase() === whale.address.toLowerCase();
+      const dirClass = isOut ? 'out' : 'in';
+      const dirText  = isOut ? '↑ Отправил' : '↓ Получил';
+      const addr     = isOut
+        ? `${tx.to.slice(0,6)}...${tx.to.slice(-4)}`
+        : `${tx.from.slice(0,6)}...${tx.from.slice(-4)}`;
+      const usd = (ethVal * 3100).toLocaleString('en', {maximumFractionDigits: 0});
+
+      list.innerHTML += `
+        <div class="whale-item">
+          <div class="whale-header">
+            <div>
+              <div class="whale-name">${whale.emoji} ${whale.name}</div>
+              <div class="whale-addr">${addr}</div>
+            </div>
+            <div class="whale-amount">
+              ${ethVal.toFixed(2)} ETH
+              <div class="whale-usd">≈ $${usd}</div>
+            </div>
+          </div>
+          <div class="whale-direction ${dirClass}">${dirText}</div>
+        </div>`;
+    });
+  } catch(e) {
+    console.error('Whales error', e);
+    list.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div>Ошибка загрузки</div>';
+  }
+}
+
+// ── Init ──────────────────────────────────────
+async function init() {
+  await Promise.all([loadFearGreed(), loadPrices(), loadTrending()]);
+  loadNews();
+  loadWhales();
+  // Auto-refresh prices every 30s
+  setInterval(loadPrices, 30000);
+}
+
+init();
+</script>
+</body>
+</html>
